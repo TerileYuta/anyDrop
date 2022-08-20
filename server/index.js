@@ -20,36 +20,30 @@ var owner_list = {};
 io.on("connection", (socket) => {
     var id = socket.id;
     var room = "";
-    var my_owner = "";
+    var peer_id = "";
 
-    socket.on("owner_login", (data) => {
+    socket.on("owner-login", (data) => {
         room = String(data.key);
-        my_owner = id;
+        peer_id = id;
 
-        owner_list[room] = id;
+        owner_list[room] = {owner : id, client: null};
 
         socket.join(room);
-        socket.to(room).emit("success", {message: "Created room!"});
+        socket.to(room).emit("login", {title: "ルームを作成しました", log: `${room}を認証しました`});
     });
 
-    socket.on("client_login", async (data) => {
+    socket.on("client-login", async (data) => {
         room = String(data.key);
-        var name = data.name;
+        var name = data.name || "No Name";
+        socket.join(room);
 
-        console.log(id);
+        peer_id = owner_list[room].owner;
 
-        my_owner = owner_list[room];
+        socket.to(peer_id).emit("new-client", {key: room, name:name});
+    });
 
-        if(my_owner != null){
-            socket.join(room);
-
-            socket.broadcast.to(room).emit("login", {key: room});
-            socket.to(my_owner).emit("new_client", {name: name});
-
-        }else{
-            socket.to(id).emit("error", {message: "オーナーが見つかりませんでした。"});
-        }
-        
+    socket.on("client-pass", (data) => {
+        socket.broadcast.to(room).emit("login", data);
     });
 
     socket.on("new-offer", (data) => {
@@ -58,7 +52,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on("answer", (data) => {   
-        socket.to(my_owner).emit("answer", data);  
+        socket.to(peer_id).emit("answer", data);  
     });
     
     socket.on("client-candidate", (data) => {
@@ -66,19 +60,23 @@ io.on("connection", (socket) => {
     });
     
     socket.on("owner-candidate", (data) => {
-        socket.to(my_owner).emit("owner-candidate", data);
+        socket.to(peer_id).emit("owner-candidate", data);
     });
     
-    socket.on("file-info", (data) => {
-        console.log(data);
-        socket.broadcast.to(room).emit("file-info", data);
+    socket.on("file-success", async(data) => {
+        console.log("File Success !!!");    
+        var result = await socket.to(room).emit("file-success", data);
+        console.log(result);
     });
 
-    /*
-    socket.on("disconnection", (socket) => {
-        
+    socket.on("done", (data) => {
+        console.log(data);
+        socket.broadcast.to(room).emit("done", data);
     });
-    */
+
+    socket.on("chat", (data) => {
+        socket.broadcast.to(room).emit("chat", data);
+    });
 });
 
 server.listen(PORT, () => console.log("server is running on 5000"));
