@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.h-app{
+    height: calc(100vh - 3rem);
+}
+
+.h-main{
+    height: calc(100vh - 7rem);
+}
+
+.h-10p{
+    height: 10%;
+}
+
+.h-90p{
+    height: 90%;
+}   
